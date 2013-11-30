@@ -23,7 +23,6 @@ static const char *proxy_connection_hdr = "Proxy-Connection: close\r\n";
 void doit(int fd);
 int parse_request(rio_t *rp, char *hostname, char *path, int *port, char *send_req);
 void form_request(rio_t *rp, char *request, char *hostname, char *method, char *path, int *port, char *send_req);
-void receive_response(rio_t *rio_cli, char *response);
 void clienterror(int fd, char *cause, char *errnum, 
 		 char *shortmsg, char *longmsg);
 		 
@@ -42,13 +41,13 @@ int main(int argc, char **argv){
 	port = atoi(argv[1]);
 	dbg_printf("listenning on port %d\n", port);fflush(stdout);
 	listenfd = Open_listenfd(port);
-	dbg_printf("listenfd: %d\n", listenfd);fflush(stdout);
+	//dbg_printf("listenfd: %d\n", listenfd);fflush(stdout);
 	
 	while (1) {
 		clientlen = sizeof(clientaddr);
 		dbg_printf("clientlen: %d\n", clientlen);
 		connfd = Accept(listenfd, (SA *)&clientaddr, (socklen_t *)&clientlen);
-		dbg_printf("connfd: %d\n", connfd);
+		//dbg_printf("connfd: %d\n", connfd);
 		hp = Gethostbyaddr((const char*)&clientaddr.sin_addr.s_addr, 
 							sizeof(clientaddr.sin_addr.s_addr), AF_INET);
 		haddrp = inet_ntoa(clientaddr.sin_addr);
@@ -67,9 +66,8 @@ int main(int argc, char **argv){
  void doit(int connfd){
     rio_t rio_conn, rio_cli;
     int port = 0;
-	char hostname[MAXLINE],path[MAXLINE],send_req[MAXLINE];//,response[MAXLINE];
+	char hostname[MAXLINE],path[MAXLINE],send_req[MAXLINE],response[MAXLINE];
 	int clientfd;
-	char buf[MAXLINE];
 	
     Rio_readinitb(&rio_conn, connfd);
 	
@@ -86,21 +84,18 @@ int main(int argc, char **argv){
 	dbg_printf("### Proxy send request to server: %s \n", send_req);
 	
 	/* read the server’s response*/
-	//receive_response(&rio_cli,response);
 	dbg_printf("### proxy receive response from server:  \n" );
-	size_t n = Rio_readlineb(&rio_cli,buf,MAXLINE);
-	printf(">%s", buf);
+	size_t n = Rio_readlineb(&rio_cli,response,MAXLINE);
+	printf(">%s", response);
 	fflush(stdout);
-	Rio_writen(connfd,buf,n);
+	Rio_writen(connfd,response,n);
 	while(n > 0) {
-		n = Rio_readlineb(&rio_cli,buf,MAXLINE);
-		//strcat(response, buf);
-		printf(">%s", buf);
+		n = Rio_readlineb(&rio_cli,response,MAXLINE);
+		printf(">%s", response);
 		fflush(stdout);
-		Rio_writen(connfd,buf,n);
+		Rio_writen(connfd,response,n);
 	}
 	
-	//Rio_writen(connfd,response,MAXLINE); /* forward it to the client */
 	Close(clientfd);
 }
 
@@ -190,20 +185,6 @@ void form_request(rio_t *rio_conn, char *request, char *hostname, char *method, 
     strcat(send_req, "\r\n");
 }
 
-/*
- * receive_response - proxy receive response from server.
- */
-void receive_response(rio_t *rio_cli, char *response){
-	char buf[MAXLINE];
-	size_t n = Rio_readlineb(rio_cli,buf,MAXLINE);
-	while(n > 0) {
-		n = Rio_readlineb(rio_cli,buf,MAXLINE);
-		strcat(response, buf);
-		printf(">%s", response);
-		fflush(stdout);
-	}
- }
- 
 /*
  * clienterror - returns an error message to the client
  */
