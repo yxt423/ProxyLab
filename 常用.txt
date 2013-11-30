@@ -1,0 +1,8 @@
+./proxy 47961
+./tiny 4500
+
+
+http://www.cs.cmu.edu/˜213
+http://www.cs.cmu.edu/˜droh
+http://www.nfl.com
+http://www.youtube.com/watch?v=ZOsLgnYeEk8
