@@ -23,14 +23,18 @@ static const char *proxy_connection_hdr = "Proxy-Connection: close\r\n";
 void doit(int fd);
 int parse_request(rio_t *rp, char *hostname, char *path, int *port, char *send_req);
 void form_request(rio_t *rp, char *request, char *hostname, char *method, char *path, int *port, char *send_req);
+void *thread(void *vargp);
 void clienterror(int fd, char *cause, char *errnum, 
 		 char *shortmsg, char *longmsg);
 		 
 int main(int argc, char **argv){
-	int listenfd, connfd, port, clientlen;
+	int listenfd, port;
+	int *connfd;
+	socklen_t clientlen;
     struct sockaddr_in clientaddr;
 	struct hostent *hp;
 	char *haddrp;
+	pthread_t tid;
 	
 	/* Check command line args */
     if (argc != 2) {
@@ -44,20 +48,31 @@ int main(int argc, char **argv){
 	//dbg_printf("listenfd: %d\n", listenfd);fflush(stdout);
 	
 	while (1) {
-		clientlen = sizeof(clientaddr);
-		dbg_printf("clientlen: %d\n", clientlen);
-		connfd = Accept(listenfd, (SA *)&clientaddr, (socklen_t *)&clientlen);
+		clientlen = sizeof(struct sockaddr_in);
+		connfd = Malloc(sizeof(int));
+		*connfd = Accept(listenfd, (SA *)&clientaddr, (socklen_t *)&clientlen);
 		//dbg_printf("connfd: %d\n", connfd);
 		hp = Gethostbyaddr((const char*)&clientaddr.sin_addr.s_addr, 
 							sizeof(clientaddr.sin_addr.s_addr), AF_INET);
 		haddrp = inet_ntoa(clientaddr.sin_addr);
 		printf("### proxy connected to client host %s (%s)\n", hp->h_name,haddrp);
 		
-		doit(connfd);
-		Close(connfd);
+		Pthread_create(&tid, NULL, thread, connfd);
 	}
 
     return 0;
+}
+
+/*
+ * thread - .
+ */
+void *thread(void *vargp){
+	int connfd = *((int *)vargp);
+	Pthread_detach(pthread_self());
+	Free(vargp);
+	doit(connfd);
+	Close(connfd);
+	return NULL;
 }
 
 /*

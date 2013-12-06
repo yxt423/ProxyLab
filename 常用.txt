@@ -1,6 +1,7 @@
 ./proxy 47961
 ./tiny 4500
 
+./driver.sh
 
 http://www.cs.cmu.edu/˜213
 http://www.cs.cmu.edu/˜droh
